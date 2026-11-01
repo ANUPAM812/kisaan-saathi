@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kisan Saathi</title>
+<style>
+:root{--bg:#f6f8f1;--card:#fff;--tx:#1d2b1a;--mu:#5d6b58;--g:#2f7d32;--bd:#dde4d4}
+@media(prefers-color-scheme:dark){:root{--bg:#121a11;--card:#1b261a;--tx:#e8f0e4;--mu:#9bb094;--g:#6fcf75;--bd:#2c3d2a}}
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+main{max-width:720px;margin:auto;padding:16px}
+.hero{border-radius:20px;padding:24px 20px;color:#fff;background:linear-gradient(120deg,#1b5e20,#2e7d32 55%,#7cb342)}
+.hero h1{margin:0}.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin:14px 0;animation:up .5s both}
+label{display:block;margin:10px 0 4px;font-weight:600}
+input,select,button{font:inherit;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);width:100%}
+button{background:var(--g);color:#fff;border:0;font-weight:700;cursor:pointer;margin-top:14px}
+.bar{height:12px;border-radius:6px;background:var(--bd);overflow:hidden}.bar i{display:block;height:100%;animation:grow 1s both}
+li{margin:6px 0}.mu{color:var(--mu);font-size:.9rem}
+@keyframes up{from{opacity:0;transform:translateY(14px)}}@keyframes grow{from{width:0}}
+</style></head><body><main>
+<div class="hero"><h1>🌾 Kisan Saathi</h1><div>Mausam, mitti aur fasal ki live salah</div></div>
+<div class="card">
+<label>Gaon / shehar</label><input id="place" placeholder="Bihta, Patna">
+<label>Fasal</label><select id="crop">
+<option value="rice">Dhan</option><option value="wheat">Gehun</option><option value="maize">Makka</option><option value="cotton">Kapas</option>
+<option value="soy">Soybean</option><option value="mustard">Sarson</option><option value="potato">Aloo</option><option value="chickpea">Chana</option><option value="cane">Ganna</option></select>
+<label>Geeli mitti ki patti?</label><select id="ribbon"><option value="0">Banti nahi (retili)</option><option value="1" selected>Choti patti</option><option value="2">Lambi, chipchipi</option></select>
+<label>Mitti ka rang</label><select id="colour"><option value="black">Kaala</option><option value="red">Laal</option><option value="alluvial" selected>Halka bhura (nadi kinare)</option><option value="pale">Halka peela / safed</option></select>
+<label>Baarish ke baad paani?</label><select id="drain"><option value="0">Turant sookhta hai</option><option value="1" selected>1-2 din</option><option value="2">Kai din khada rehta hai</option></select>
+<label>Garmi me dararen?</label><select id="cracks"><option value="0" selected>Nahi</option><option value="1">Choti</option><option value="2">Badi, gehri</option></select>
+<label>Fasal ki halat</label><select id="stage"><option value="plan">Abhi boni nahi hai</option><option value="sown">Bo chuka hoon</option></select>
+<label>Sinchai ka saadhan?</label><select id="irrigation"><option value="1">Haan</option><option value="0">Nahi</option></select>
+<button id="go">🔍 Salah dikhao</button><p id="msg" class="mu"></p></div>
+<div id="out"></div></main>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+$('go').onclick=async()=>{
+ const q=new URLSearchParams();
+ ['place','crop','ribbon','colour','drain','cracks','stage','irrigation'].forEach(k=>q.set(k,$(k).value));
+ $('msg').textContent='⏳ Live data la rahe hain...';$('out').innerHTML='';
+ try{
+  const r=await fetch('/api/advice?'+q);const d=await r.json();
+  if(!r.ok)throw new Error(d.error||r.status);
+  const a=d.analysis,s=d.soil,k=a.risk,c=k.overall<25?'#2f7d32':k.overall<55?'#ef8f00':'#c62828';
+  $('out').innerHTML=`
+  <div class="card"><h2>📍 ${esc(d.location.name)} · ${esc(d.crop)}</h2>
+   <p><b>Mitti:</b> ${esc(s.type)}<br><span class="mu">clay ${s.clay}% · sand ${s.sand}% · silt ${s.silt}% · pH ${s.ph??'n/a'} · nikasi ${esc(s.drainage)}</span></p>
+   <p>Baarish: pichhle 30 din <b>${a.rain_past30_mm} mm</b>, agle 16 din <b>${a.rain_next16_mm} mm</b></p></div>
+  <div class="card"><h2>🌾 Nuksan ka jokhim: ${k.overall}/100</h2>
+   <div class="bar"><i style="width:${k.overall}%;background:${c}"></i></div>
+   <p class="mu">Jalbharav ${k.waterlogging} · Sookha ${k.drought} · Garmi-thand ${k.temperature}</p></div>
+  <div class="card"><h2>🧑‍🌾 Salah</h2><ul>${d.advice.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
+  <p class="mu">Data: Open-Meteo ✔ · SoilGrids ${d.sources.soilgrids?'✔':'✘ (nahi mila)'} · Yeh anuman hai, KVK se bhi salah lein.</p>`;
+  $('msg').textContent='';
+ }catch(e){$('msg').textContent='❌ '+e.message}
+};
+</script></body></html>
