@@ -18,6 +18,8 @@ li{margin:6px 0}.mu{color:var(--mu);font-size:.9rem}
 <div class="hero"><h1>🌾 Kisan Saathi</h1><div>Mausam, mitti aur fasal ki live salah</div></div>
 <div class="card">
 <label>Gaon / shehar</label><input id="place" placeholder="Bihta, Patna">
+<button type="button" id="gps" style="background:transparent;color:var(--g);border:1px solid var(--g)">📍 GPS se meri location lo</button>
+<p id="gpsInfo" class="mu"></p>
 <label>Fasal</label><select id="crop">
 <option value="rice">Dhan</option><option value="wheat">Gehun</option><option value="maize">Makka</option><option value="cotton">Kapas</option>
 <option value="soy">Soybean</option><option value="mustard">Sarson</option><option value="potato">Aloo</option><option value="chickpea">Chana</option><option value="cane">Ganna</option></select>
@@ -32,9 +34,21 @@ li{margin:6px 0}.mu{color:var(--mu);font-size:.9rem}
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let gpsPos=null;
+$('gps').onclick=()=>{
+ if(!navigator.geolocation){$('gpsInfo').textContent='Aapka browser GPS support nahi karta, shehar ka naam likhein.';return}
+ $('gpsInfo').textContent='⏳ Location dhoondh rahe hain...';
+ navigator.geolocation.getCurrentPosition(p=>{
+  gpsPos={lat:p.coords.latitude,lon:p.coords.longitude};$('place').value='';
+  $('gpsInfo').textContent=`✅ GPS mil gaya: ${gpsPos.lat.toFixed(3)}, ${gpsPos.lon.toFixed(3)}`;
+ },e=>{gpsPos=null;$('gpsInfo').textContent='❌ Location nahi mili. Browser me location ki permission allow karein, ya shehar ka naam likhein.'},
+ {enableHighAccuracy:true,timeout:15000});
+};
+$('place').addEventListener('input',()=>{if($('place').value){gpsPos=null;$('gpsInfo').textContent=''}});
 $('go').onclick=async()=>{
  const q=new URLSearchParams();
  ['place','crop','ribbon','colour','drain','cracks','stage','irrigation'].forEach(k=>q.set(k,$(k).value));
+ if(gpsPos){q.set('lat',gpsPos.lat);q.set('lon',gpsPos.lon)}
  $('msg').textContent='⏳ Live data la rahe hain...';$('out').innerHTML='';
  try{
   const r=await fetch('/api/advice?'+q);const d=await r.json();
