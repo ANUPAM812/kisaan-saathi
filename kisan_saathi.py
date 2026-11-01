@@ -224,7 +224,11 @@ def build_report(place, crop_key, ans, planning=True, irrigation=True, coords=No
     sg = fetch_soilgrids(loc["lat"], loc["lon"])
     soil = soil_model(ans, sg)
     a = analyse(weather, soil, crop, irrigation, planning)
-    return {"location": loc, "crop": crop["name"], "soil": soil, "analysis": a,
+    daily = [{"date": weather["time"][i], "rain": round(weather["rain"][i], 1),
+              "tmax": round(weather["tmax"][i]), "tmin": round(weather["tmin"][i])}
+             for i in range(30, len(weather["time"]))]
+    return {"location": loc, "crop": crop["name"], "crop_params": crop, "daily": daily,
+            "soil": soil, "analysis": a,
             "advice": advice_lines(a, crop, planning, irrigation),
             "sources": {"open_meteo": True, "soilgrids": sg is not None},
             "generated_at": datetime.now().isoformat(timespec="seconds")}
